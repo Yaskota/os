@@ -1,0 +1,479 @@
+#include <stdio.h>
+
+FCFS
+
+Explanation: FCFS scheduling is the simplest type of CPU 
+scheduling. In this method, the process that arrives first
+ gets executed first. It operates on a first-come, first-served
+  basis. This method can be unfair in scenarios where a short process
+   is stuck waiting for a long process to complete.
+
+struct Process {
+    int id, arrivalTime, burstTime, waitingTime, turnaroundTime;
+};
+
+void findWaitingTime(struct Process proc[], int n) {
+    proc[0].waitingTime = 0;  // First process has no waiting time
+    for (int i = 1; i < n; i++) {
+        proc[i].waitingTime = proc[i - 1].waitingTime + proc[i - 1].burstTime;
+    }
+}
+
+void findTurnaroundTime(struct Process proc[], int n) {
+    for (int i = 0; i < n; i++) {
+        proc[i].turnaroundTime = proc[i].burstTime + proc[i].waitingTime;
+    }
+}
+
+void findAverageTime(struct Process proc[], int n) {
+    findWaitingTime(proc, n);
+    findTurnaroundTime(proc, n);
+
+    int totalWaitingTime = 0, totalTurnaroundTime = 0;
+    for (int i = 0; i < n; i++) {
+        totalWaitingTime += proc[i].waitingTime;
+        totalTurnaroundTime += proc[i].turnaroundTime;
+    }
+
+    printf("Average waiting time = %.2f\n", (float)totalWaitingTime / n);
+    printf("Average turnaround time = %.2f\n", (float)totalTurnaroundTime / n);
+}
+
+int main() {
+    int n = 4;
+    struct Process proc[] = {{1, 0, 24}, {2, 0, 3}, {3, 0, 3}, {4, 0, 4}};
+    findAverageTime(proc, n);
+    return 0;
+}
+
+SJF
+
+Explanation: SJF scheduling selects the process with the 
+smallest burst time for execution next. This can be either 
+preemptive or non-preemptive. Non-preemptive SJF is simple
+ and is used in this example. SJF minimizes the average waiting 
+ time, but it requires prior knowledge of the burst times of the 
+ processes.
+ 
+#include <stdio.h>
+
+struct Process {
+    int id, burstTime, waitingTime, turnaroundTime;
+};
+
+void findWaitingTime(struct Process proc[], int n) {
+    int waitTime = 0;
+    proc[0].waitingTime = 0;
+
+    for (int i = 1; i < n; i++) {
+        waitTime += proc[i - 1].burstTime;
+        proc[i].waitingTime = waitTime;
+    }
+}
+
+void findTurnaroundTime(struct Process proc[], int n) {
+    for (int i = 0; i < n; i++) {
+        proc[i].turnaroundTime = proc[i].burstTime + proc[i].waitingTime;
+    }
+}
+
+void findAverageTime(struct Process proc[], int n) {
+    findWaitingTime(proc, n);
+    findTurnaroundTime(proc, n);
+
+    int totalWaitingTime = 0, totalTurnaroundTime = 0;
+    for (int i = 0; i < n; i++) {
+        totalWaitingTime += proc[i].waitingTime;
+        totalTurnaroundTime += proc[i].turnaroundTime;
+    }
+
+    printf("Average waiting time = %.2f\n", (float)totalWaitingTime / n);
+    printf("Average turnaround time = %.2f\n", (float)totalTurnaroundTime / n);
+}
+
+void sortProcessesByBurstTime(struct Process proc[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (proc[j].burstTime > proc[j + 1].burstTime) {
+                struct Process temp = proc[j];
+                proc[j] = proc[j + 1];
+                proc[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int main() {
+    int n = 4;
+    struct Process proc[] = {{1, 6}, {2, 8}, {3, 7}, {4, 3}};
+    sortProcessesByBurstTime(proc, n);
+    findAverageTime(proc, n);
+    return 0;
+} 
+
+ROUND ROBIN 
+
+#include <stdio.h>
+
+struct Process {
+    int id, burstTime, waitingTime, turnaroundTime, remainingTime;
+};
+
+void findWaitingTime(struct Process proc[], int n, int quantum) {
+    int time = 0;
+    int completed = 0;
+
+    while (completed < n) {
+        for (int i = 0; i < n; i++) {
+            if (proc[i].remainingTime > 0) {
+                if (proc[i].remainingTime > quantum) {
+                    time += quantum;
+                    proc[i].remainingTime -= quantum;
+                } else {
+                    time += proc[i].remainingTime;
+                    proc[i].waitingTime = time - proc[i].burstTime;
+                    proc[i].remainingTime = 0;
+                    completed++;
+                }
+            }
+        }
+    }
+}
+
+void findTurnaroundTime(struct Process proc[], int n) {
+    for (int i = 0; i < n; i++) {
+        proc[i].turnaroundTime = proc[i].burstTime + proc[i].waitingTime;
+    }
+}
+
+void findAverageTime(struct Process proc[], int n, int quantum) {
+    for (int i = 0; i < n; i++) {
+        proc[i].remainingTime = proc[i].burstTime;
+    }
+
+    findWaitingTime(proc, n, quantum);
+    findTurnaroundTime(proc, n);
+
+    int totalWaitingTime = 0, totalTurnaroundTime = 0;
+    for (int i = 0; i < n; i++) {
+        totalWaitingTime += proc[i].waitingTime;
+        totalTurnaroundTime += proc[i].turnaroundTime;
+    }
+
+    printf("Average waiting time = %.2f\n", (float)totalWaitingTime / n);
+    printf("Average turnaround time = %.2f\n", (float)totalTurnaroundTime / n);
+}
+
+int main() {
+    int n = 4;
+    int quantum = 2;
+    struct Process proc[] = {{1, 10}, {2, 5}, {3, 8}, {4, 6}};
+    findAverageTime(proc, n, quantum);
+    return 0;
+}
+
+PRIORITY 
+
+#include <stdio.h>
+
+struct Process {
+    int id, burstTime, priority, waitingTime, turnaroundTime;
+};
+
+void findWaitingTime(struct Process proc[], int n) {
+    proc[0].waitingTime = 0;
+    for (int i = 1; i < n; i++) {
+        proc[i].waitingTime = proc[i - 1].waitingTime + proc[i - 1].burstTime;
+    }
+}
+
+void findTurnaroundTime(struct Process proc[], int n) {
+    for (int i = 0; i < n; i++) {
+        proc[i].turnaroundTime = proc[i].burstTime + proc[i].waitingTime;
+    }
+}
+
+void findAverageTime(struct Process proc[], int n) {
+    findWaitingTime(proc, n);
+    findTurnaroundTime(proc, n);
+
+    int totalWaitingTime = 0, totalTurnaroundTime = 0;
+    for (int i = 0; i < n; i++) {
+        totalWaitingTime += proc[i].waitingTime;
+        totalTurnaroundTime += proc[i].turnaroundTime;
+    }
+
+    printf("Average waiting time = %.2f\n", (float)totalWaitingTime / n);
+    printf("Average turnaround time = %.2f\n", (float)totalTurnaroundTime / n);
+}
+
+void sortProcessesByPriority(struct Process proc[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (proc[j].priority > proc[j + 1].priority) {
+                struct Process temp = proc[j];
+                proc[j] = proc[j + 1];
+                proc[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int main() {
+    int n = 4;
+    struct Process proc[] = {{1, 10, 2}, {2, 1, 1}, {3, 2, 3}, {4, 1, 4}};
+    sortProcessesBy
+    
+    }
+ 
+ 
+ 
+ 
+ 2 .  question
+ 
+ #include <unistd.h>
+
+#include <stdio.h>
+
+#include <fcntl.h>
+
+
+int main(){
+
+    int fd;
+    char buffer[80];
+    char msg[50]="hello ifocus institute  hello ";
+
+    fd=open("check.txt",O_RDWR);
+    printf("fd= %d",fd);
+
+    if(fd!=-1){
+
+        printf("\n check.txt opened with read write access\n");
+        write(fd,msg,sizeof(msg));
+        lseek(fd,0,SEEK_SET);
+        read(fd,buffer,sizeof(msg));
+        printf("\n %s was written to my file\n", buffer);
+        close(fd);
+    }
+
+    return 0;
+} 
+
+3.deadlock 
+#include <stdio.h>
+#include <stdbool.h>
+
+int main() {
+    int n, m;
+    printf("Enter the number of processes: ");
+    scanf("%d", &n);
+    printf("Enter the number of resource types: ");
+    scanf("%d", &m);
+
+    int allocation[n][m], max[n][m], available[m], need[n][m], safeSequence[n];
+    bool finish[n];
+
+    // Input allocation matrix
+    printf("Enter the allocation matrix:\n");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            scanf("%d", &allocation[i][j]);
+        }
+    }
+
+    // Input maximum demand matrix
+    printf("Enter the maximum demand matrix:\n");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            scanf("%d", &max[i][j]);
+        }
+    }
+
+    // Input available resources
+    printf("Enter the available resources:\n");
+    for (int i = 0; i < m; i++) {
+        scanf("%d", &available[i]);
+    }
+
+    // Calculate the need matrix
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            need[i][j] = max[i][j] - allocation[i][j];
+        }
+    }
+
+    // Initialize finish array to false
+    for (int i = 0; i < n; i++) {
+        finish[i] = false;
+    }
+
+    // Apply Banker's Algorithm
+    int count = 0;
+    while (count < n) {
+        bool found = false;
+        for (int p = 0; p < n; p++) {
+            if (!finish[p]) {
+                bool canAllocate = true;
+                for (int j = 0; j < m; j++) {
+                    if (need[p][j] > available[j]) {
+                        canAllocate = false;
+                        break;
+                    }
+                }
+                if (canAllocate) {
+                    for (int k = 0; k < m; k++) {
+                        available[k] += allocation[p][k];
+                    }
+                    safeSequence[count++] = p;
+                    finish[p] = true;
+                    found = true;
+                }
+            }
+        }
+        if (!found) {
+            printf("The system is in an unsafe state.\n");
+            return 0;
+        }
+    }
+
+    printf("The system is in a safe state.\nSafe sequence is: ");
+    for (int i = 0; i < n; i++) {
+        printf("%d ", safeSequence[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+
+
+4 . producer consumer 
+
+// C program for the above approach
+#include <stdio.h>
+#include <stdlib.h>
+
+// Initialize a mutex to 1
+int mutex = 1;
+
+// Number of full slots as 0
+int full = 0;
+
+// Number of empty slots as size
+// of buffer
+int empty = 10, x = 0;
+
+// Function to produce an item and
+// add it to the buffer
+void producer()
+{
+    // Decrease mutex value by 1
+    --mutex;
+
+    // Increase the number of full
+    // slots by 1
+    ++full;
+
+    // Decrease the number of empty
+    // slots by 1
+    --empty;
+
+    // Item produced
+    x++;
+    printf("\nProducer produces"
+           "item %d",
+           x);
+
+    // Increase mutex value by 1
+    ++mutex;
+}
+
+// Function to consume an item and
+// remove it from buffer
+void consumer()
+{
+    // Decrease mutex value by 1
+    --mutex;
+
+    // Decrease the number of full
+    // slots by 1
+    --full;
+
+    // Increase the number of empty
+    // slots by 1
+    ++empty;
+    printf("\nConsumer consumes "
+           "item %d",
+           x);
+    x--;
+
+    // Increase mutex value by 1
+    ++mutex;
+}
+
+// Driver Code
+int main()
+{
+    int n, i;
+    printf("\n1. Press 1 for Producer"
+           "\n2. Press 2 for Consumer"
+           "\n3. Press 3 for Exit");
+
+// Using '#pragma omp parallel for'
+// can  give wrong value due to
+// synchronization issues.
+
+// 'critical' specifies that code is
+// executed by only one thread at a
+// time i.e., only one thread enters
+// the critical section at a given time
+#pragma omp critical
+
+    for (i = 1; i > 0; i++) {
+
+        printf("\nEnter your choice:");
+        scanf("%d", &n);
+
+        // Switch Cases
+        switch (n) {
+        case 1:
+
+            // If mutex is 1 and empty
+            // is non-zero, then it is
+            // possible to produce
+            if ((mutex == 1)
+                && (empty != 0)) {
+                producer();
+            }
+
+            // Otherwise, print buffer
+            // is full
+            else {
+                printf("Buffer is full!");
+            }
+            break;
+
+        case 2:
+
+            // If mutex is 1 and full
+            // is non-zero, then it is
+            // possible to consume
+            if ((mutex == 1)
+                && (full != 0)) {
+                consumer();
+            }
+
+            // Otherwise, print Buffer
+            // is empty
+            else {
+                printf("Buffer is empty!");
+            }
+            break;
+
+        // Exit Condition
+        case 3:
+            exit(0);
+            break;
+        }
+    }
+}
